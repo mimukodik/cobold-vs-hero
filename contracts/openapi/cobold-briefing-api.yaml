@@ -1,171 +1,207 @@
 openapi: 3.0.3
 info:
   title: Cobold vs Hero Briefing API
-  version: 0.3.0
+  version: 0.4.0
 paths:
   /api/cobold-vs-hero/status:
     get:
       summary: Return BFF and backend runtime status
-      operationId: getSystemStatus
       responses:
         '200':
-          description: Runtime status for the BFF and Java backend
+          description: Runtime status
           content:
             application/json:
-              schema:
-                $ref: '#/components/schemas/SystemStatusResponse'
+              schema: { $ref: '#/components/schemas/SystemStatusResponse' }
   /api/cobold-vs-hero/briefing:
     post:
-      summary: Create a review readiness matrix for a proposed delivery move
-      operationId: createBriefing
+      summary: Create a briefing with planned evidence items
       requestBody:
         required: true
         content:
           application/json:
             schema:
               $ref: '#/components/schemas/BriefingRequest'
-            examples:
-              shieldWall:
-                value:
-                  changeTitle: Production release without rollback
-                  changeDescription: Deploy a production payment retry fix with test and browser evidence but no rollback path.
-                  affectedSurfaces: [backend, bff, frontend, contract, testing]
-                  providedEvidence: [backend-test, bruno-smoke, dps-testautomation, browser-screenshot, hld, lld]
-                  riskFlags: [production]
       responses:
         '200':
-          description: Readiness briefing generated
+          description: Briefing created
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/BriefingResponse'
+  /api/cobold-vs-hero/briefings/{briefingId}/evidence/{evidenceId}/attach:
+    post:
+      summary: Attach an evidence URL as the developer
+      parameters:
+        - $ref: '#/components/parameters/BriefingId'
+        - $ref: '#/components/parameters/EvidenceId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AttachEvidenceRequest'
+      responses:
+        '200': { $ref: '#/components/responses/BriefingUpdated' }
+        '400': { description: URL is blank }
+        '403': { description: Actor is not the developer }
+        '409': { description: Evidence is not planned }
+  /api/cobold-vs-hero/briefings/{briefingId}/evidence/{evidenceId}/approve:
+    post:
+      summary: Approve attached evidence as its assigned reviewer
+      parameters:
+        - $ref: '#/components/parameters/BriefingId'
+        - $ref: '#/components/parameters/EvidenceId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReviewEvidenceRequest'
+      responses:
+        '200': { $ref: '#/components/responses/BriefingUpdated' }
+        '403': { description: Actor is not the assigned reviewer }
+        '409': { description: Evidence is not attached }
+  /api/cobold-vs-hero/briefings/{briefingId}/evidence/{evidenceId}/reject:
+    post:
+      summary: Reject attached evidence with a mandatory comment
+      parameters:
+        - $ref: '#/components/parameters/BriefingId'
+        - $ref: '#/components/parameters/EvidenceId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RejectEvidenceRequest'
+      responses:
+        '200': { $ref: '#/components/responses/BriefingUpdated' }
+        '400': { description: Reviewer comment is blank }
+        '403': { description: Actor is not the assigned reviewer }
+        '409': { description: Evidence is not attached }
 components:
+  parameters:
+    BriefingId:
+      name: briefingId
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+    EvidenceId:
+      name: evidenceId
+      in: path
+      required: true
+      schema: { $ref: '#/components/schemas/EvidenceId' }
+  responses:
+    BriefingUpdated:
+      description: Updated briefing and readiness verdict
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/BriefingResponse'
   schemas:
     ServiceStatus:
       type: object
-      required:
-        - service
-        - runtime
-        - status
-        - checkedAt
-        - endpoint
+      required: [service, runtime, status, checkedAt, endpoint]
       properties:
-        service:
-          type: string
-          enum: [bff-nestjs, be-java]
-        runtime:
-          type: string
-          enum: [nestjs, spring-boot]
-        status:
-          type: string
-          enum: [UP, DOWN]
-        checkedAt:
-          type: string
-          format: date-time
-        endpoint:
-          type: string
-        detail:
-          type: string
+        service: { type: string }
+        runtime: { type: string }
+        status: { type: string, enum: [UP, DOWN] }
+        checkedAt: { type: string, format: date-time }
+        endpoint: { type: string }
+        detail: { type: string }
     SystemStatusResponse:
       type: object
-      required:
-        - status
-        - checkedAt
-        - services
+      required: [status, checkedAt, services]
       properties:
-        status:
-          type: string
-          enum: [UP, DEGRADED]
-        checkedAt:
-          type: string
-          format: date-time
-        services:
-          type: array
-          minItems: 2
-          items:
-            $ref: '#/components/schemas/ServiceStatus'
+        status: { type: string, enum: [UP, DEGRADED] }
+        checkedAt: { type: string, format: date-time }
+        services: { type: array, items: { $ref: '#/components/schemas/ServiceStatus' } }
+    ActorRole:
+      type: string
+      enum: [developer, api-reviewer, ui-reviewer, tech-lead]
+    EvidenceId:
+      type: string
+      enum: [backend-test, bruno-smoke, dps-testautomation, browser-screenshot, hld, lld, rollback]
     BriefingRequest:
       type: object
-      required:
-        - changeTitle
-        - changeDescription
-        - affectedSurfaces
-        - providedEvidence
-        - riskFlags
+      required: [changeTitle, changeDescription, affectedSurfaces, riskFlags]
       properties:
-        changeTitle:
-          type: string
-        changeDescription:
-          type: string
+        changeTitle: { type: string, minLength: 1 }
+        changeDescription: { type: string, minLength: 1 }
         affectedSurfaces:
           type: array
           minItems: 1
-          items:
-            type: string
-            enum: [backend, bff, frontend, contract, testing]
-        providedEvidence:
-          type: array
-          items:
-            type: string
-            enum: [backend-test, bruno-smoke, dps-testautomation, browser-screenshot, hld, lld, rollback]
+          items: { type: string, enum: [backend, bff, frontend, contract, testing] }
         riskFlags:
           type: array
-          items:
-            type: string
-            enum: [production, customer-data, auth, payment, unclear-scope]
+          items: { type: string, enum: [production, customer-data, auth, payment, unclear-scope] }
+    AttachEvidenceRequest:
+      type: object
+      required: [actorRole, url]
+      properties:
+        actorRole: { $ref: '#/components/schemas/ActorRole' }
+        url: { type: string, format: uri, minLength: 1 }
+    ReviewEvidenceRequest:
+      type: object
+      required: [actorRole]
+      properties:
+        actorRole: { $ref: '#/components/schemas/ActorRole' }
+    RejectEvidenceRequest:
+      allOf:
+        - $ref: '#/components/schemas/ReviewEvidenceRequest'
+        - type: object
+          required: [comment]
+          properties:
+            comment: { type: string, minLength: 1 }
+    EvidenceItem:
+      type: object
+      required: [id, label, status, approverRole]
+      properties:
+        id: { $ref: '#/components/schemas/EvidenceId' }
+        label: { type: string }
+        status: { type: string, enum: [planned, attached, approved] }
+        approverRole: { $ref: '#/components/schemas/ActorRole' }
+        url: { type: string, format: uri, nullable: true }
+        rejectionComment: { type: string, nullable: true }
+    EvidenceGap:
+      type: object
+      required: [evidenceId, nextStep, responsibleParty, message]
+      properties:
+        evidenceId: { $ref: '#/components/schemas/EvidenceId' }
+        nextStep: { type: string, enum: [csatolásra vár, jóváhagyásra vár] }
+        responsibleParty: { type: string }
+        message: { type: string }
     ReviewMatrixRow:
       type: object
-      required:
-        - surface
-        - expectedEvidence
-        - providedEvidence
-        - gap
-        - nextAction
+      required: [surface, expectedEvidence, providedEvidence, gap, nextAction]
       properties:
-        surface:
-          type: string
-          enum: [backend, bff, frontend, contract, testing]
-        expectedEvidence:
-          type: array
-          items:
-            type: string
-        providedEvidence:
-          type: array
-          items:
-            type: string
-        gap:
-          type: string
-        nextAction:
-          type: string
+        surface: { type: string }
+        expectedEvidence: { type: array, items: { type: string } }
+        providedEvidence: { type: array, items: { type: string } }
+        gap: { type: string }
+        nextAction: { type: string }
     BriefingResponse:
       type: object
       required:
+        - briefingId
         - signal
         - headline
+        - readinessVerdict
         - requiredEvidence
         - missingEvidence
+        - evidenceItems
+        - gaps
         - stopCondition
         - heroNextStep
         - reviewMatrix
       properties:
-        signal:
-          type: string
-          enum: [truce, sparring, shield-wall]
-        headline:
-          type: string
-        requiredEvidence:
-          type: array
-          items:
-            type: string
-        missingEvidence:
-          type: array
-          items:
-            type: string
-        stopCondition:
-          type: string
-        heroNextStep:
-          type: string
-        reviewMatrix:
-          type: array
-          items:
-            $ref: '#/components/schemas/ReviewMatrixRow'
+        briefingId: { type: string, format: uuid }
+        signal: { type: string, enum: [truce, sparring, shield-wall] }
+        headline: { type: string }
+        readinessVerdict: { type: string, enum: [READY, NOT_READY] }
+        requiredEvidence: { type: array, items: { $ref: '#/components/schemas/EvidenceId' } }
+        missingEvidence: { type: array, items: { $ref: '#/components/schemas/EvidenceId' } }
+        evidenceItems: { type: array, items: { $ref: '#/components/schemas/EvidenceItem' } }
+        gaps: { type: array, items: { $ref: '#/components/schemas/EvidenceGap' } }
+        stopCondition: { type: string }
+        heroNextStep: { type: string }
+        reviewMatrix: { type: array, items: { $ref: '#/components/schemas/ReviewMatrixRow' } }

@@ -19,16 +19,16 @@ body:json {
     "changeTitle": "Backend label endpoint",
     "changeDescription": "Add one small backend endpoint and attach the backend unit test.",
     "affectedSurfaces": ["backend"],
-    "providedEvidence": ["backend-test"],
     "riskFlags": []
   }
 }
 
 assert {
   res.status: eq 200
-  res.body.signal: eq truce
+  res.body.signal: eq sparring
+  res.body.readinessVerdict: eq NOT_READY
   res.body.requiredEvidence: isNotEmpty
-  res.body.missingEvidence: isEmpty
+  res.body.missingEvidence: isNotEmpty
   res.body.reviewMatrix: isNotEmpty
-  res.body.reviewMatrix[0].gap: eq covered
+  res.body.evidenceItems[0].status: eq planned
 }

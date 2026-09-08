@@ -5,8 +5,8 @@ Angular UI for the Cobold vs Hero Review Readiness Matrix.
 ## Responsibilities
 
 - Render the BFF/backend runtime status panel.
-- Collect change title, description, affected surfaces, provided evidence, and
-  risk flags.
+- Collect change title, description, affected surfaces, and risk flags.
+- Guide evidence through attachment and reviewer approval.
 - Call the BFF through `/api/cobold-vs-hero/*`.
 - Render signal, stop condition, next action, required evidence, missing
   evidence, and matrix rows.

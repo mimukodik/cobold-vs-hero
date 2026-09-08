@@ -6,6 +6,14 @@
       Select the surfaces, evidence, and risk flags. The briefing shows whether the slice is
       ready, needs sharper proof, or should be split before implementation.
     </p>
+    <label class="role-switcher">
+      <span>Aktív szerepkör</span>
+      <select name="role" data-test="role-switcher" [(ngModel)]="selectedRole">
+        @for (role of roleOptions; track role.value) {
+          <option [value]="role.value">{{ role.label }}</option>
+        }
+      </select>
+    </label>
   </section>
 
   <section class="status-page" aria-label="Service status" data-test="status-page">
@@ -96,23 +104,6 @@
       </fieldset>
 
       <fieldset>
-        <legend>Available evidence</legend>
-        <div class="option-grid">
-          @for (option of evidenceOptions; track option.value) {
-            <label class="option-chip">
-              <input
-                type="checkbox"
-                [attr.data-test]="'evidence-' + option.value"
-                [checked]="hasSelection(providedEvidence, option.value)"
-                (change)="toggleSelection(providedEvidence, option.value)"
-              />
-              <span>{{ option.label }}</span>
-            </label>
-          }
-        </div>
-      </fieldset>
-
-      <fieldset>
         <legend>Risk flags</legend>
         <div class="option-grid">
           @for (option of riskOptions; track option.value) {
@@ -150,7 +141,13 @@
       } @else if (briefing(); as result) {
         <header class="result-header">
           <p class="signal" data-test="briefing-signal">{{ result.signal }}</p>
-          <p class="proof-status" data-test="briefing-status">{{ statusFor(result.signal) }}</p>
+          <p
+            class="proof-status"
+            data-test="briefing-status"
+            [class.proof-status--warn]="result.readinessVerdict === 'NOT_READY'"
+          >
+            {{ result.readinessVerdict }}
+          </p>
         </header>
         <h2 data-test="briefing-headline">{{ result.headline }}</h2>
         <section class="reason-block" aria-label="Stop condition">
@@ -161,6 +158,81 @@
           </div>
         </section>
         <p class="next-step" data-test="briefing-next-step">{{ result.nextAction }}</p>
+
+        <section class="evidence-workflow" aria-label="Evidence approval">
+          <p class="prompt-title">Evidence approval</p>
+          @for (item of result.evidenceItems; track item.id) {
+            <article class="evidence-item">
+              <header>
+                <strong>{{ item.label }}</strong>
+                <span class="evidence-state" [attr.data-test]="'evidence-status-' + item.id">
+                  {{ statusLabel(item.status) }}
+                </span>
+              </header>
+              <p class="empty">Jóváhagyó: {{ roleLabel(item.approverRole) }}</p>
+
+              @if (item.status === 'planned' && selectedRole === 'developer') {
+                <label>
+                  <span>Evidence URL</span>
+                  <input
+                    type="url"
+                    [name]="'evidence-url-' + item.id"
+                    [attr.data-test]="'evidence-url-' + item.id"
+                    [(ngModel)]="evidenceUrls[item.id]"
+                  />
+                </label>
+                <button
+                  type="button"
+                  [attr.data-test]="'attach-evidence-' + item.id"
+                  (click)="attachEvidence(item)"
+                >
+                  Csatolás
+                </button>
+              }
+
+              @if (item.status === 'attached') {
+                <a [href]="item.url" target="_blank" rel="noreferrer">{{ item.url }}</a>
+                @if (canReview(item)) {
+                  <label>
+                    <span>Reviewer megjegyzése elutasításhoz</span>
+                    <textarea
+                      rows="2"
+                      [name]="'rejection-comment-' + item.id"
+                      [attr.data-test]="'rejection-comment-' + item.id"
+                      [(ngModel)]="rejectionComments[item.id]"
+                    ></textarea>
+                  </label>
+                  <div class="evidence-actions">
+                    <button
+                      type="button"
+                      [attr.data-test]="'approve-evidence-' + item.id"
+                      (click)="approveEvidence(item)"
+                    >
+                      Jóváhagyás
+                    </button>
+                    <button
+                      type="button"
+                      class="button-secondary"
+                      [attr.data-test]="'reject-evidence-' + item.id"
+                      (click)="rejectEvidence(item)"
+                    >
+                      Elutasítás
+                    </button>
+                  </div>
+                }
+              }
+
+              @if (item.rejectionComment) {
+                <p class="rejection-comment" [attr.data-test]="'rejection-comment-visible-' + item.id">
+                  Reviewer: {{ item.rejectionComment }}
+                </p>
+              }
+              @if (evidenceErrors[item.id]) {
+                <p class="error" [attr.data-test]="'evidence-error-' + item.id">{{ evidenceErrors[item.id] }}</p>
+              }
+            </article>
+          }
+        </section>
 
         <section class="prompt-block" aria-label="Evidence summary" data-test="evidence-summary">
           <p class="prompt-title">Evidence summary</p>
@@ -175,10 +247,10 @@
             </div>
             <div>
               <p class="column-title">Missing</p>
-              @if (result.missingEvidence.length) {
+              @if (result.gaps.length) {
                 <ul data-test="missing-evidence">
-                  @for (item of result.missingEvidence; track item) {
-                    <li>{{ item }}</li>
+                  @for (gap of result.gaps; track gap.evidenceId) {
+                    <li>{{ gap.evidenceId }} — {{ gap.message }}</li>
                   }
                 </ul>
               } @else {

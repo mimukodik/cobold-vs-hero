@@ -22,7 +22,7 @@ older free-text review-signal-only flow.
 - The numbered historical workshop branches remain useful as history, but the
   main repo describes the current baseline.
 - Documentation and tests should prefer matrix language: affected surfaces,
-  provided evidence, missing evidence, stop condition, and review matrix rows.
+  evidence state, missing evidence, stop condition, and review matrix rows.
 
 ## D02 - Backend Owns Readiness Rules
 
@@ -96,3 +96,14 @@ design, smoke, browser, and automation evidence is otherwise present.
 - Reviewers can see the release safety gap before implementation or release.
 - The OpenAPI enum, samples, smoke checks, automation, UI options, and backend
   rules must stay aligned around the `rollback` evidence value.
+
+## D05 - Backend Owns Evidence Approval State
+
+Status: Accepted
+
+Evidence moves through `planned -> attached -> approved`; rejection moves
+`attached -> planned` and requires a reviewer comment. The Spring backend owns
+state, transition validation, role permissions, and the rule that only approved
+required evidence makes a briefing `READY`. The BFF only maps and forwards the
+attach/approve/reject operations. The UI supplies a non-authenticated role
+switcher for workshop use.

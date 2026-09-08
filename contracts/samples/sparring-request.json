@@ -2,6 +2,5 @@
   "changeTitle": "Status panel mapping",
   "changeDescription": "Add one backend field, one BFF mapper, and one Angular status panel.",
   "affectedSurfaces": ["backend", "bff", "frontend"],
-  "providedEvidence": ["backend-test", "hld", "lld"],
   "riskFlags": []
 }

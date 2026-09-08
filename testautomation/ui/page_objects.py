@@ -11,13 +11,11 @@ class BriefingFormData:
     change_title: str
     change_description: str
     affected_surfaces: tuple[str, ...] | None = None
-    provided_evidence: tuple[str, ...] | None = None
     risk_flags: tuple[str, ...] | None = None
 
 
 class CoboldBriefingPOM:
     SURFACE_OPTIONS = ("backend", "bff", "frontend", "contract", "testing")
-    EVIDENCE_OPTIONS = ("backend-test", "bruno-smoke", "dps-testautomation", "browser-screenshot", "hld", "lld", "rollback")
     RISK_OPTIONS = ("production", "customer-data", "auth", "payment", "unclear-scope")
 
     def __init__(self, page: Page, ui_base_url: str, bff_base_url: str | None = None) -> None:
@@ -40,8 +38,6 @@ class CoboldBriefingPOM:
         self.by_data_test("change-description-input").fill(data.change_description)
         if data.affected_surfaces is not None:
             self._set_option_group("surface", self.SURFACE_OPTIONS, data.affected_surfaces)
-        if data.provided_evidence is not None:
-            self._set_option_group("evidence", self.EVIDENCE_OPTIONS, data.provided_evidence)
         if data.risk_flags is not None:
             self._set_option_group("risk", self.RISK_OPTIONS, data.risk_flags)
 
@@ -64,6 +60,32 @@ class CoboldBriefingPOM:
     def assert_matrix_rows_covered(self, surfaces: tuple[str, ...]) -> None:
         for surface in surfaces:
             expect(self.by_data_test(f"matrix-row-{surface}")).to_contain_text("covered")
+
+    def create_backend_briefing(self) -> None:
+        self.fill_briefing_form(
+            BriefingFormData(
+                change_title="Backend evidence approval",
+                change_description="Review one focused backend test.",
+                affected_surfaces=("backend",),
+            )
+        )
+        self.request_briefing()
+
+    def attach(self, evidence_id: str, url: str = "https://example.test/evidence") -> None:
+        self.by_data_test(f"evidence-url-{evidence_id}").fill(url)
+        self.by_data_test(f"attach-evidence-{evidence_id}").click()
+        expect(self.by_data_test(f"evidence-status-{evidence_id}")).to_have_text("csatolva")
+
+    def switch_role(self, role: str) -> None:
+        self.by_data_test("role-switcher").select_option(role)
+
+    def approve(self, evidence_id: str) -> None:
+        self.by_data_test(f"approve-evidence-{evidence_id}").click()
+
+    def reject(self, evidence_id: str, comment: str | None = None) -> None:
+        if comment is not None:
+            self.by_data_test(f"rejection-comment-{evidence_id}").fill(comment)
+        self.by_data_test(f"reject-evidence-{evidence_id}").click()
 
     def by_data_test(self, value: str) -> Locator:
         return self.page.locator(f'[data-test="{value}"]')

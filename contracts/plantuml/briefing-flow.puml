@@ -7,14 +7,20 @@ participant "Angular UI" as ui
 participant "NestJS BFF" as bff
 participant "Spring Boot API" as api
 
-hero -> ui: Enter change details\nselect surfaces, evidence, risks
+hero -> ui: Enter change details\nselect surfaces and risks
 ui -> bff: POST /api/cobold-vs-hero/briefing
 bff -> api: POST /api/cobold-vs-hero/briefing
-api -> api: derive surface + release evidence\nrequire rollback for production\nbuild matrix
-api --> bff: signal, required/missing evidence,\nstop condition, next action, matrix
+api -> api: derive required evidence\ncreate planned state
+api --> bff: evidence items + NOT_READY gaps
 bff -> bff: map backend contract to UI DTO
 bff --> ui: UI readiness response
-ui -> cobold: review matrix + evidence gaps
-cobold --> hero: start, sharpen, split, or block release
+hero -> ui: attach evidence URL as developer
+ui -> bff: POST attach
+bff -> api: validate planned -> attached
+cobold -> ui: approve or reject as assigned reviewer
+ui -> bff: POST approve/reject
+bff -> api: validate role + transition\nrecalculate readiness
+api --> bff: updated evidence + readiness
+bff --> ui: READY only when all required items are approved
 
 @enduml

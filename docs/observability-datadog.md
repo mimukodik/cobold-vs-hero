@@ -159,7 +159,7 @@ Exercise the request path:
 curl https://cobold.pragmatic-ai.engineer/api/cobold-vs-hero/status
 curl -X POST https://cobold.pragmatic-ai.engineer/api/cobold-vs-hero/briefing \
   -H 'content-type: application/json' \
-  -d '{"changeTitle":"Datadog smoke","changeDescription":"Trace the full request path.","affectedSurfaces":["backend","bff","frontend"],"providedEvidence":["hld"],"riskFlags":[]}'
+  -d '{"changeTitle":"Datadog smoke","changeDescription":"Trace the full request path.","affectedSurfaces":["backend","bff","frontend"],"riskFlags":[]}'
 ```
 
 Then verify in Datadog:

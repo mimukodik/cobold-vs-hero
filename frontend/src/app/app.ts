@@ -3,13 +3,35 @@ import { Component, OnInit, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 
 interface BriefingResponse {
+  briefingId: string;
   signal: string;
   headline: string;
+  readinessVerdict: 'READY' | 'NOT_READY';
   requiredEvidence: string[];
   missingEvidence: string[];
+  evidenceItems: EvidenceItem[];
+  gaps: EvidenceGap[];
   stopCondition: string;
   nextAction: string;
   reviewMatrix: ReviewMatrixRow[];
+}
+
+type ActorRole = 'developer' | 'api-reviewer' | 'ui-reviewer' | 'tech-lead';
+
+interface EvidenceItem {
+  id: string;
+  label: string;
+  status: 'planned' | 'attached' | 'approved';
+  approverRole: Exclude<ActorRole, 'developer'>;
+  url?: string;
+  rejectionComment?: string;
+}
+
+interface EvidenceGap {
+  evidenceId: string;
+  nextStep: string;
+  responsibleParty: string;
+  message: string;
 }
 
 interface ReviewMatrixRow {
@@ -48,8 +70,11 @@ export class App implements OnInit {
   changeTitle = 'Status panel mapping';
   changeDescription = 'Add one backend field, one BFF mapper, and one Angular status panel.';
   affectedSurfaces = ['backend', 'bff', 'frontend'];
-  providedEvidence = ['backend-test', 'hld', 'lld'];
   riskFlags: string[] = [];
+  selectedRole: ActorRole = 'developer';
+  evidenceUrls: Record<string, string> = {};
+  rejectionComments: Record<string, string> = {};
+  evidenceErrors: Record<string, string> = {};
 
   readonly surfaceOptions = [
     { value: 'backend', label: 'Backend' },
@@ -58,14 +83,11 @@ export class App implements OnInit {
     { value: 'contract', label: 'Contract' },
     { value: 'testing', label: 'Testing' },
   ];
-  readonly evidenceOptions = [
-    { value: 'backend-test', label: 'Backend test' },
-    { value: 'bruno-smoke', label: 'Bruno smoke' },
-    { value: 'dps-testautomation', label: 'DPS-like automation' },
-    { value: 'browser-screenshot', label: 'Browser screenshot' },
-    { value: 'hld', label: 'HLD' },
-    { value: 'lld', label: 'LLD' },
-    { value: 'rollback', label: 'Rollback plan' },
+  readonly roleOptions: { value: ActorRole; label: string }[] = [
+    { value: 'developer', label: 'Fejlesztő' },
+    { value: 'api-reviewer', label: 'API reviewer' },
+    { value: 'ui-reviewer', label: 'UI reviewer' },
+    { value: 'tech-lead', label: 'Tech lead' },
   ];
   readonly riskOptions = [
     { value: 'production', label: 'Production' },
@@ -122,7 +144,6 @@ export class App implements OnInit {
         affectedSurfaces: this.affectedSurfaces,
         changeDescription: this.changeDescription,
         changeTitle: this.changeTitle,
-        providedEvidence: this.providedEvidence,
         riskFlags: this.riskFlags,
       })
       .subscribe({
@@ -133,6 +154,57 @@ export class App implements OnInit {
         error: () => {
           this.error.set('The briefing flow is not reachable. Start the BFF and backend.');
           this.loading.set(false);
+        },
+      });
+  }
+
+  attachEvidence(item: EvidenceItem): void {
+    const url = this.evidenceUrls[item.id]?.trim();
+    if (!url) {
+      this.evidenceErrors = { ...this.evidenceErrors, [item.id]: 'URL megadása kötelező.' };
+      return;
+    }
+    this.transitionEvidence(item.id, 'attach', { actorRole: this.selectedRole, url });
+  }
+
+  approveEvidence(item: EvidenceItem): void {
+    this.transitionEvidence(item.id, 'approve', { actorRole: this.selectedRole });
+  }
+
+  rejectEvidence(item: EvidenceItem): void {
+    const comment = this.rejectionComments[item.id]?.trim();
+    if (!comment) {
+      this.evidenceErrors = { ...this.evidenceErrors, [item.id]: 'A reviewer megjegyzése kötelező.' };
+      return;
+    }
+    this.transitionEvidence(item.id, 'reject', { actorRole: this.selectedRole, comment });
+  }
+
+  canReview(item: EvidenceItem): boolean {
+    return this.selectedRole === item.approverRole;
+  }
+
+  roleLabel(role: ActorRole): string {
+    return this.roleOptions.find((option) => option.value === role)?.label ?? role;
+  }
+
+  statusLabel(status: EvidenceItem['status']): string {
+    return { approved: 'jóváhagyva', attached: 'csatolva', planned: 'tervezett' }[status];
+  }
+
+  private transitionEvidence(evidenceId: string, action: 'attach' | 'approve' | 'reject', body: object): void {
+    const current = this.briefing();
+    if (!current) return;
+    this.evidenceErrors = { ...this.evidenceErrors, [evidenceId]: '' };
+    this.http
+      .post<BriefingResponse>(
+        this.apiUrl(`/api/cobold-vs-hero/briefings/${current.briefingId}/evidence/${evidenceId}/${action}`),
+        body,
+      )
+      .subscribe({
+        next: (briefing) => this.briefing.set(briefing),
+        error: () => {
+          this.evidenceErrors = { ...this.evidenceErrors, [evidenceId]: 'A művelet nem hajtható végre.' };
         },
       });
   }

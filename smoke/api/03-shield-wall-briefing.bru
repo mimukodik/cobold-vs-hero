@@ -19,7 +19,6 @@ body:json {
     "changeTitle": "Production release without rollback",
     "changeDescription": "Deploy a production payment retry fix with test and browser evidence but no rollback path.",
     "affectedSurfaces": ["backend", "bff", "frontend", "contract", "testing"],
-    "providedEvidence": ["backend-test", "bruno-smoke", "dps-testautomation", "browser-screenshot", "hld", "lld"],
     "riskFlags": ["production"]
   }
 }
@@ -28,13 +27,6 @@ assert {
   res.status: eq 200
   res.body.signal: eq shield-wall
   res.body.requiredEvidence[6]: eq rollback
-  res.body.missingEvidence[0]: eq rollback
-  res.body.stopCondition: contains production
-  res.body.stopCondition: contains rollback
-  res.body.nextAction: contains rollback
-  res.body.reviewMatrix[0].gap: eq covered
-  res.body.reviewMatrix[1].gap: eq covered
-  res.body.reviewMatrix[2].gap: eq covered
-  res.body.reviewMatrix[3].gap: eq covered
-  res.body.reviewMatrix[4].gap: eq covered
+  res.body.readinessVerdict: eq NOT_READY
+  res.body.evidenceItems[4].approverRole: eq tech-lead
 }

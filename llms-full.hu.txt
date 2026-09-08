@@ -205,7 +205,8 @@ Komponens felelossegek
 Angular frontend:
 
 - Begyujti a change title es description mezoket.
-- Kivalaszthato az affected surfaces, provided evidence es risk flags.
+- Kivalaszthato az affected surfaces es risk flags.
+- Vegigvezeti az evidence csatolasat es reviewer jovahagyasat.
 - Meghivja a BFF-et: `/api/cobold-vs-hero/status`.
 - Meghivja a BFF-et: `/api/cobold-vs-hero/briefing`.
 - Rendereli a service statust, signalt, stop conditiont, next actiont,
@@ -298,7 +299,6 @@ Request:
   "changeTitle": "Billing retry status panel",
   "changeDescription": "Add one backend endpoint, one BFF mapper, and one Angular panel.",
   "affectedSurfaces": ["backend", "bff", "frontend", "contract", "testing"],
-  "providedEvidence": ["backend-test", "hld", "lld"],
   "riskFlags": ["customer-data", "unclear-scope"]
 }
 ```
@@ -343,15 +343,6 @@ Affected surfaces:
 - `frontend`
 - `contract`
 - `testing`
-
-Provided evidence:
-
-- `backend-test`
-- `bruno-smoke`
-- `dps-testautomation`
-- `browser-screenshot`
-- `hld`
-- `lld`
 
 Risk flags:
 

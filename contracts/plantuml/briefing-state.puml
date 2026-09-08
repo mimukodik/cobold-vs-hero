@@ -1,31 +1,18 @@
 @startuml
-title Review readiness signal states
+title Evidence approval states
 
-state "Unclassified request" as unclassified
-state "Truce" as truce
-state "Sparring" as sparring
-state "Shield wall" as shield_wall
+state "Tervezett / planned" as planned
+state "Csatolva / attached" as attached
+state "Jóváhagyva / approved" as approved
 
-truce : all required evidence present
-truce : no high-risk missing proof
+[*] --> planned
+planned --> attached : developer attaches non-empty URL
+attached --> approved : assigned reviewer approves
+attached --> planned : assigned reviewer rejects\nmandatory comment remains visible
+approved --> [*]
 
-sparring : useful slice
-sparring : one or two evidence gaps
-
-shield_wall : too risky
-shield_wall : high-risk proof missing
-shield_wall : production rollback missing
-shield_wall : split before implementation
-
-[*] --> unclassified
-unclassified --> truce : evidence complete
-unclassified --> sparring : small evidence gap
-unclassified --> shield_wall : production without rollback / high-risk gap / many gaps
-
-truce --> sparring : evidence removed
-sparring --> shield_wall : production flag added without rollback
-shield_wall --> sparring : task split + evidence planned
-sparring --> truce : missing evidence attached
-truce --> [*] : implementation review ready
-
+note right of approved
+  READY only when every required
+  evidence item is approved.
+end note
 @enduml

@@ -64,4 +64,18 @@ describe('App', () => {
     expect(compiled.textContent).toContain('BE Java');
     expect(compiled.textContent).toContain('spring-boot');
   });
+
+  it('blocks attaching evidence without a URL', () => {
+    const fixture = TestBed.createComponent(App);
+    const app = fixture.componentInstance;
+
+    app.attachEvidence({
+      approverRole: 'api-reviewer',
+      id: 'backend-test',
+      label: 'Backend test',
+      status: 'planned',
+    });
+
+    expect(app.evidenceErrors['backend-test']).toContain('URL');
+  });
 });

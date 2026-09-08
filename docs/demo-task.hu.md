@@ -57,7 +57,6 @@ Request:
   "changeTitle": "Billing retry status panel",
   "changeDescription": "Add one backend endpoint, one BFF mapper, and one Angular panel.",
   "affectedSurfaces": ["backend", "bff", "frontend", "contract", "testing"],
-  "providedEvidence": ["backend-test", "hld", "lld"],
   "riskFlags": ["customer-data", "unclear-scope"]
 }
 ```

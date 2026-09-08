@@ -56,7 +56,7 @@ Canonical contract diagrams:
 
 | Component | Responsibility |
 | --- | --- |
-| Angular UI | Collect change title, description, affected surfaces, provided evidence, and risk flags. Render signal, stop condition, next action, evidence summary, matrix rows, and runtime status. |
+| Angular UI | Collect change title, description, affected surfaces, and risk flags. Guide evidence through attachment and reviewer approval, then render the current readiness state. |
 | NestJS BFF | Keep the UI contract stable, map backend field names to UI-facing names, and aggregate BFF/backend runtime status. |
 | Spring Boot API | Derive required evidence, missing evidence, release-blocking rollback checks, signal, stop condition, next action, and review matrix rows. |
 | Contracts | Keep OpenAPI, PlantUML, and sample payloads aligned with behavior. |
@@ -67,20 +67,21 @@ Canonical contract diagrams:
 ## Solution Flow
 
 1. The Hero proposer describes a change.
-2. The user selects affected surfaces, available evidence, and risk flags.
+2. The user selects affected surfaces and risk flags.
 3. The BFF forwards the structured request to the backend without owning
    readiness rules.
 4. The backend derives required evidence from surfaces and risk flags.
 5. If `production` is selected, the backend requires `rollback` evidence that
    explains how production can be restored if the release fails.
-6. The backend compares required evidence with provided evidence.
-7. The backend derives `truce`, `sparring`, or `shield-wall`.
-8. Missing `rollback` evidence for `production` is an immediate `shield-wall`
-   release blocker.
-9. The backend returns required evidence, missing evidence, stop condition,
-   next action, and one matrix row per affected surface.
+6. Every required evidence item starts as `planned`.
+7. The developer attaches each item, and its assigned reviewer approves or
+   rejects it.
+8. The backend derives `truce`, `sparring`, or `shield-wall` from the current
+   approval state and risk flags.
+9. The backend returns required and missing evidence, evidence states, gaps,
+   stop condition, next action, and one matrix row per affected surface.
 10. The BFF maps `heroNextStep` to `nextAction` for the UI.
-11. The UI renders the matrix and status panel for review.
+11. The UI renders the evidence workflow, matrix, and status panel for review.
 12. The team uses contract samples, smoke checks, automation, and browser
     evidence to decide whether the slice is review-ready.
 

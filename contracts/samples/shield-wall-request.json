@@ -2,6 +2,5 @@
   "changeTitle": "Production release without rollback",
   "changeDescription": "Deploy a production payment retry fix with test and browser evidence but no rollback path.",
   "affectedSurfaces": ["backend", "bff", "frontend", "contract", "testing"],
-  "providedEvidence": ["backend-test", "bruno-smoke", "dps-testautomation", "browser-screenshot", "hld", "lld"],
   "riskFlags": ["production"]
 }

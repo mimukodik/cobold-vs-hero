@@ -1,9 +1,12 @@
-import { Injectable, ServiceUnavailableException } from '@nestjs/common';
+import { BadRequestException, HttpException, Injectable, ServiceUnavailableException } from '@nestjs/common';
 import {
+  AttachEvidenceRequestDto,
   BackendStatusResponseDto,
   BackendBriefingResponseDto,
   BriefingRequestDto,
   BriefingResponseDto,
+  RejectEvidenceRequestDto,
+  ReviewEvidenceRequestDto,
   ServiceStatusDto,
   SystemStatusResponseDto,
 } from './briefing.dto';
@@ -17,7 +20,6 @@ export class BriefingService {
   async createBriefing(request: BriefingRequestDto): Promise<BriefingResponseDto> {
     logInfo('bff.briefing.requested', {
       affectedSurfaceCount: request.affectedSurfaces.length,
-      providedEvidenceCount: request.providedEvidence.length,
       riskFlagCount: request.riskFlags.length,
     });
 
@@ -39,10 +41,70 @@ export class BriefingService {
       signal: backendResponse.signal,
     });
 
+    return this.mapBriefing(backendResponse);
+  }
+
+  async attachEvidence(
+    briefingId: string,
+    evidenceId: string,
+    request: AttachEvidenceRequestDto,
+  ): Promise<BriefingResponseDto> {
+    if (!request.url?.trim()) {
+      throw new BadRequestException({ errors: { url: 'URL is required' }, message: 'Validation failed' });
+    }
+    return this.transition(briefingId, evidenceId, 'attach', request);
+  }
+
+  async approveEvidence(
+    briefingId: string,
+    evidenceId: string,
+    request: ReviewEvidenceRequestDto,
+  ): Promise<BriefingResponseDto> {
+    return this.transition(briefingId, evidenceId, 'approve', request);
+  }
+
+  async rejectEvidence(
+    briefingId: string,
+    evidenceId: string,
+    request: RejectEvidenceRequestDto,
+  ): Promise<BriefingResponseDto> {
+    if (!request.comment?.trim()) {
+      throw new BadRequestException({ errors: { comment: 'Reviewer comment is required' }, message: 'Validation failed' });
+    }
+    return this.transition(briefingId, evidenceId, 'reject', request);
+  }
+
+  private async transition(
+    briefingId: string,
+    evidenceId: string,
+    action: 'attach' | 'approve' | 'reject',
+    request: AttachEvidenceRequestDto | ReviewEvidenceRequestDto | RejectEvidenceRequestDto,
+  ): Promise<BriefingResponseDto> {
+    const response = await fetch(
+      `${this.backendBaseUrl}/api/cobold-vs-hero/briefings/${briefingId}/evidence/${evidenceId}/${action}`,
+      {
+        body: JSON.stringify(request),
+        headers: { 'content-type': 'application/json' },
+        method: 'POST',
+      },
+    );
+
+    if (!response.ok) {
+      const detail = await response.text();
+      throw new HttpException(detail || `Backend returned ${response.status}`, response.status);
+    }
+    return this.mapBriefing((await response.json()) as BackendBriefingResponseDto);
+  }
+
+  private mapBriefing(backendResponse: BackendBriefingResponseDto): BriefingResponseDto {
     return {
+      briefingId: backendResponse.briefingId,
+      evidenceItems: backendResponse.evidenceItems,
+      gaps: backendResponse.gaps,
       headline: backendResponse.headline,
       missingEvidence: backendResponse.missingEvidence,
       nextAction: backendResponse.heroNextStep,
+      readinessVerdict: backendResponse.readinessVerdict,
       requiredEvidence: backendResponse.requiredEvidence,
       reviewMatrix: backendResponse.reviewMatrix,
       signal: backendResponse.signal,

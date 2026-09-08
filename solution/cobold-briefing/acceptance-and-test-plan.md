@@ -17,6 +17,10 @@ API/UI testautomation visible in one place.
 | AC7 | HLD/LLD explain behavior before implementation. | Solution review against `solution/cobold-briefing/`. |
 | AC8 | Scope stays inside readiness behavior and verification surfaces. | Diff boundary review. |
 | AC9 | Production release readiness requires `rollback` evidence and returns `shield-wall` when it is missing. | Backend unit test, Bruno smoke, DPS-like API testautomation, browser result panel. |
+| AC10 | Evidence transitions are role-checked and invalid transitions fail. | Backend unit tests and BFF tests. |
+| AC11 | Attachment URL and rejection comment are mandatory. | BFF tests and browser automation. |
+| AC12 | Attached evidence is not ready; every required item must be approved. | Backend, API, and UI automation. |
+| AC13 | Production/auth design evidence requires Tech lead sign-off. | Backend and browser automation. |
 
 ## Verification Layers
 
