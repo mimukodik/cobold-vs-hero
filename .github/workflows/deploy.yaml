@@ -52,17 +52,10 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Prepare Docker config
-        run: |
-          echo "DOCKER_CONFIG=$RUNNER_TEMP/docker-config" >> "$GITHUB_ENV"
-          mkdir -p "$RUNNER_TEMP/docker-config"
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-        with:
-          name: berek-builder-${{ runner.name }}
-          keep-state: true
-          cleanup: false
+      # Host policy must be installed before this workflow is enabled.
+      - name: Use the runner's budgeted builder
+        id: buildx
+        run: berek-ci-builder
 
       - name: Log in to GHCR
         uses: docker/login-action@v3
@@ -77,7 +70,7 @@ jobs:
           DOCKER_BUILD_RECORD_UPLOAD: false
           DOCKER_BUILD_SUMMARY: false
         with:
-          builder: berek-builder-${{ runner.name }}
+          builder: ${{ steps.buildx.outputs.name }}
           context: ${{ matrix.context }}
           platforms: linux/amd64
           push: true
@@ -89,6 +82,7 @@ jobs:
             ${{ env.IMAGE_NAMESPACE }}/${{ matrix.image }}:${{ env.IMAGE_TAG }}
             ${{ env.IMAGE_NAMESPACE }}/${{ matrix.image }}:main
           labels: |
+            io.berek.ci.disposable=true
             org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
             org.opencontainers.image.revision=${{ github.sha }}
 
